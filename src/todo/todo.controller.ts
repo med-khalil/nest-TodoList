@@ -1,59 +1,37 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { TodoService } from './todo-service/todo.service';
+import { addTodoDto } from './DTO/add-todo.dto';
+import { UpdateTodoDto } from './DTO/update-todo.dto';
 import { ToDo } from './Model/todo.model';
 
 @Controller('todo')
 export class TodoController {
-  constructor() {
+  constructor(private readonly todoservice: TodoService) {
     this.todos = [new ToDo('1', 'Sport', 'Faire du sport')];
   }
-  private findToDo(id: string): ToDo {
-    const item = this.todos.find((e) => e.id == id);
-    if (!item) {
-      throw new NotFoundException();
-    }
 
-    return item;
-  }
   todos: ToDo[] = [];
   @Get()
   getTodos() {
-    return { ...this.todos };
+    return { ...this.todoservice.getTodos() };
   }
   @Get(':id')
   getTodoSpec(@Param('id') id: string): ToDo {
-    const todo = this.findToDo(id);
-    if (!todo) return null;
-    return todo;
+    return this.todoservice.getTodoSpec(id);
   }
   @Post()
-  addTodo(@Body() newTodoData: ToDo): ToDo {
-    let todo = new ToDo();
-    todo.id = uuidv4();
-    todo = { ...todo, ...newTodoData };
-    this.todos.push(todo);
-    return todo;
+  addTodo(@Body() newTodoData: addTodoDto): addTodoDto {
+    return this.todoservice.addTodo(newTodoData);
   }
   @Patch(':id')
-  updateTodo(@Param('id') id: string, @Body() newTodoData: ToDo): ToDo {
-    let todo = this.findToDo(id);
-    todo = { ...todo, ...newTodoData };
-    this.todos.push(todo);
-    return todo;
+  updateTodo(
+    @Param('id') id: string,
+    @Body() newTodoData: UpdateTodoDto,
+  ): UpdateTodoDto {
+    return this.todoservice.updateTodo(id, newTodoData);
   }
   @Post(':id')
   removetodo(@Param('id') id: string): ToDo {
-    const todo = this.findToDo(id);
-    if (!todo) return null;
-    this.todos = this.todos.filter((e) => e.id != id);
-    return null;
+    return this.todoservice.removetodo(id);
   }
 }
