@@ -1,6 +1,6 @@
 import { IsNotEmpty, MinLength } from 'class-validator';
 
-export class addTodoDto {
+export class AddTodoDto {
   @IsNotEmpty({ message: 'required field' })
   @MinLength(3, { message: 'min length is 3' })
   name: string;

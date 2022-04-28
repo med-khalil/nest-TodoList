@@ -1,52 +1,69 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { addTodoDto } from 'src/todo/DTO/add-todo.dto';
-import { UpdateTodoDto } from 'src/todo/DTO/update-todo.dto';
-import { ToDo } from 'src/todo/Model/todo.model';
-// import { v4 as uuidv4 } from 'uuid';
+import { Like, Repository } from 'typeorm';
+import { TodoEntity } from '../Entity/todo.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UpdateTodoDto } from '../DTO/update-todo.dto';
+import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult';
+import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult';
+import { SearchTodoDto } from '../DTO/search-todo.dto';
+
 @Injectable()
 export class TodoService {
-  todos: ToDo[] = [];
-  count: number;
-  public findToDo(id: number): ToDo {
-    const item = this.todos.find((e) => e.id == id);
-    if (!item) {
-      throw new NotFoundException();
+  constructor(
+    @InjectRepository(TodoEntity)
+    private todoRepository: Repository<TodoEntity>,
+  ) {}
+  addTodo(todo: Partial<TodoEntity>): Promise<TodoEntity> {
+    return this.todoRepository.save(todo);
+  }
+
+  async updateTodo(
+    updateTodoDto: UpdateTodoDto,
+    id: string,
+  ): Promise<TodoEntity> {
+    const newTodo = await this.todoRepository.preload({ id, ...updateTodoDto });
+    if (newTodo) {
+      return this.todoRepository.save(newTodo);
+    } else {
+      throw new NotFoundException(`Le todo d'id ${id} n'existe pas `);
     }
-    return item;
   }
 
-  getTodos() {
-    return { ...this.todos };
+  async deleteTodo(id: string): Promise<DeleteResult> {
+    const result = await this.todoRepository.delete(id);
+    if (result.affected) {
+      return result;
+    }
+    throw new NotFoundException(`Le todo d'id ${id} n'existe pas `);
+  }
+  async softDeleteTodo(id: string): Promise<UpdateResult> {
+    const result = await this.todoRepository.softDelete(id);
+    if (result.affected) {
+      return result;
+    }
+    throw new NotFoundException(`Le todo d'id ${id} n'existe pas `);
   }
 
-  getTodoSpec(id: number): ToDo {
-    const todo = this.findToDo(id);
-    if (!todo) return null;
-    return todo;
+  async softRestoreTodo(id: string) {
+    const result = await this.todoRepository.restore(id);
+    if (result.affected) {
+      return result;
+    }
+    throw new NotFoundException(`Le todo d'id ${id} n'existe pas `);
   }
 
-  addTodo(newTodoData: addTodoDto): addTodoDto {
-    let todo = new ToDo();
-
-    if (!this.count) this.count = 1;
-    this.count += 1;
-    todo.id = this.count;
-    todo = { ...todo, ...newTodoData };
-    this.todos.push(todo);
-    return todo;
-  }
-
-  updateTodo(id: number, newTodoData: UpdateTodoDto): UpdateTodoDto {
-    let todo = this.findToDo(id);
-    todo = { ...todo, ...newTodoData };
-    this.todos.push(todo);
-    return todo;
-  }
-
-  removetodo(id: number): ToDo {
-    const todo = this.findToDo(id);
-    if (!todo) return null;
-    this.todos = this.todos.filter((e) => e.id != id);
-    return null;
+  findAll(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
+    const criterias = [];
+    if (searchTodoDto.status) {
+      criterias.push({ status: searchTodoDto.status });
+    }
+    if (searchTodoDto.criteria) {
+      criterias.push({ name: Like(`%${searchTodoDto.criteria}%`) });
+      criterias.push({ description: Like(`%${searchTodoDto.criteria}%`) });
+    }
+    if (criterias.length) {
+      return this.todoRepository.find({ withDeleted: true, where: criterias });
+    }
+    return this.todoRepository.find({ withDeleted: true });
   }
 }

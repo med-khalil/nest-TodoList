@@ -6,46 +6,43 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Req,
   UseFilters,
   UseInterceptors,
 } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+import { Request } from 'express';
 import { TodoService } from './todo-service/todo.service';
-import { addTodoDto } from './DTO/add-todo.dto';
+import { AddTodoDto } from './DTO/add-todo.dto';
 import { UpdateTodoDto } from './DTO/update-todo.dto';
+import { SearchTodoDto } from './DTO/search-todo.dto';
 import { ToDo } from './Model/todo.model';
-import { HttpExceptionFilter } from './http-exception.filter';
-import { LoggingInterceptor } from './logging.interceptor';
 
-@Controller('todo')
-@UseFilters(new HttpExceptionFilter())
-@UseInterceptors(new LoggingInterceptor())
+@Controller({
+  path: 'todo',
+  version: '1',
+})
 export class TodoController {
-  constructor(private readonly todoservice: TodoService) {
-    this.todoservice.todos = [new ToDo(1, 'Sport', 'Faire du sport')];
+  constructor(private todoService: TodoService) {
+    this.todos = [new ToDo('1', 'Sport', 'Faire du sport')];
   }
-
   todos: ToDo[] = [];
   @Get()
-  getTodos() {
-    return { ...this.todoservice.getTodos() };
+  getTodos(@Req() request: Request): ToDo[] {
+    // console.log(request);
+    return this.todos;
   }
-  @Get(':id')
-  getTodoSpec(@Param('id', ParseIntPipe) id: number): ToDo {
-    return this.todoservice.getTodoSpec(id);
+  @Post('fake')
+  addTodo(@Body() newTodoData: ToDo): ToDo {
+    let todo = new ToDo();
+    // const { name, description} = newTodoData;
+    todo.id = uuidv4();
+    todo = { ...todo, ...newTodoData };
+    this.todos.push(todo);
+    return todo;
   }
-  @Post()
-  addTodo(@Body() newTodoData: addTodoDto): addTodoDto {
-    return this.todoservice.addTodo(newTodoData);
-  }
-  @Patch(':id')
-  updateTodo(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() newTodoData: UpdateTodoDto,
-  ): UpdateTodoDto {
-    return this.todoservice.updateTodo(id, newTodoData);
-  }
-  @Post(':id')
-  removetodo(@Param('id', ParseIntPipe) id: number): ToDo {
-    return this.todoservice.removetodo(id);
+  @Get('version')
+  version() {
+    return '1';
   }
 }
