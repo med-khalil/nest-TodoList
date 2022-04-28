@@ -33,6 +33,11 @@ export class TodoDBController {
   addTodo(@Body() newTodoData: Partial<TodoEntity>): Promise<TodoEntity> {
     return this.todoService.addTodo(newTodoData);
   }
+  @Post('fake/:number?')
+  addTodoFake(@Param('number') number: number) {
+    this.todoService.generateFakeData(number || 10);
+  }
+
   @Patch(':id')
   updateTodo(
     @Body() updateTodoDto: UpdateTodoDto,

@@ -6,6 +6,8 @@ import { UpdateTodoDto } from '../DTO/update-todo.dto';
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult';
 import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult';
 import { SearchTodoDto } from '../DTO/search-todo.dto';
+import { TodoStatusEnum } from '../Enums/todo-status.enum';
+import { faker } from '@faker-js/faker';
 
 @Injectable()
 export class TodoService {
@@ -16,7 +18,20 @@ export class TodoService {
   addTodo(todo: Partial<TodoEntity>): Promise<TodoEntity> {
     return this.todoRepository.save(todo);
   }
-
+  async generateFakeData(count: number) {
+    const enums = [
+      TodoStatusEnum.actif,
+      TodoStatusEnum.waiting,
+      TodoStatusEnum.done,
+    ];
+    for (let i = 0; i < count; i++) {
+      const todo = new TodoEntity();
+      todo.name = faker.name.firstName();
+      todo.description = faker.lorem.sentence();
+      todo.status = enums[faker.random.number(enums.length - 1)];
+      await this.todoRepository.save(todo);
+    }
+  }
   async updateTodo(
     updateTodoDto: UpdateTodoDto,
     id: string,
@@ -54,6 +69,8 @@ export class TodoService {
 
   findAll(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
     const criterias = [];
+    const page = searchTodoDto.page || 1;
+    const offset = searchTodoDto.offset || 5;
     if (searchTodoDto.status) {
       criterias.push({ status: searchTodoDto.status });
     }
@@ -62,7 +79,12 @@ export class TodoService {
       criterias.push({ description: Like(`%${searchTodoDto.criteria}%`) });
     }
     if (criterias.length) {
-      return this.todoRepository.find({ withDeleted: true, where: criterias });
+      return this.todoRepository.find({
+        withDeleted: true,
+        where: criterias,
+        skip: (page - 1) * offset,
+        take: page,
+      });
     }
     return this.todoRepository.find({ withDeleted: true });
   }
