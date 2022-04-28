@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { devConfig } from 'config/dev.config';
@@ -6,10 +6,6 @@ import { prodConfig } from 'config/prod.config';
 import { MorganModule } from 'nest-morgan';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { logger } from './todo/first.middleware';
-import { TodoService } from './todo/todo-service/todo.service';
-
-import { TodoController } from './todo/todo.controller';
 import { TodoModule } from './todo/todo.module';
 
 @Module({
@@ -29,7 +25,7 @@ import { TodoModule } from './todo/todo.module';
       database: 'gl322',
       autoLoadEntities: true,
       synchronize: true,
-      debug: true,
+      // debug: true,
     }),
   ],
   controllers: [AppController],

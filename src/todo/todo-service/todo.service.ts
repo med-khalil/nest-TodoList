@@ -8,6 +8,7 @@ import { UpdateResult } from 'typeorm/query-builder/result/UpdateResult';
 import { SearchTodoDto } from '../DTO/search-todo.dto';
 import { TodoStatusEnum } from '../Enums/todo-status.enum';
 import { faker } from '@faker-js/faker';
+import { StatsTodoDto } from '../DTO/stats-todo.dto';
 
 @Injectable()
 export class TodoService {
@@ -67,10 +68,24 @@ export class TodoService {
     throw new NotFoundException(`Le todo d'id ${id} n'existe pas `);
   }
 
+  async getStats(statsTodoDto: StatsTodoDto): Promise<TodoEntity[]> {
+    const start = statsTodoDto.start || '2018-04-15';
+    const end = statsTodoDto.end || '2023-04-15';
+    const result = await this.todoRepository.query(`
+    SELECT status,count(*) as count FROM todo
+    WHERE deletedAt IS NULL
+    AND createdAt BETWEEN '${start}' AND '${end}'
+    GROUP BY status
+    `);
+
+    console.log(start, '\n', end);
+    return result;
+  }
+
   findAll(searchTodoDto: SearchTodoDto): Promise<TodoEntity[]> {
     const criterias = [];
-    const page = searchTodoDto.page || 1;
-    const offset = searchTodoDto.offset || 5;
+    const page = searchTodoDto.page || 10;
+    const offset = searchTodoDto.offset || 0;
     if (searchTodoDto.status) {
       criterias.push({ status: searchTodoDto.status });
     }
@@ -78,14 +93,19 @@ export class TodoService {
       criterias.push({ name: Like(`%${searchTodoDto.criteria}%`) });
       criterias.push({ description: Like(`%${searchTodoDto.criteria}%`) });
     }
+    // console.log('criterias', ...criterias);
     if (criterias.length) {
       return this.todoRepository.find({
         withDeleted: true,
         where: criterias,
-        skip: (page - 1) * offset,
+        skip: offset,
         take: page,
       });
     }
-    return this.todoRepository.find({ withDeleted: true });
+    return this.todoRepository.find({
+      withDeleted: true,
+      skip: offset,
+      take: page,
+    });
   }
 }

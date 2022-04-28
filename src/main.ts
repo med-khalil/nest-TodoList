@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import * as morgan from 'morgan';
+// import * as morgan from 'morgan';
 import * as dotenv from 'dotenv';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 // const corsOptions = {
@@ -14,7 +14,9 @@ async function bootstrap() {
   app.enableVersioning({
     type: VersioningType.URI,
   });
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({ transform: true, enableDebugMessages: true }),
+  );
   // app.enableCors(corsOptions);
   await app.listen(3000);
 }
